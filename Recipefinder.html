@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Recipe Finder — Arelly Rakshith Goud</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0a0a0d;
+    --card:#15151b;
+    --border:rgba(255,255,255,0.08);
+    --text:#f2f2f0;
+    --muted:#8d8d97;
+    --muted-dim:#5c5c66;
+    --accent:#8fb8ff;
+    --accent-warm:#ffb454;
+    --danger:#ff6b6b;
+    --glow:rgba(143,184,255,0.14);
+  }
+  *{ margin:0; padding:0; box-sizing:border-box; }
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'Space Grotesk', sans-serif;
+    min-height:100vh;
+    padding:60px 20px 80px;
+    position:relative;
+    overflow-x:hidden;
+    display:flex;
+    justify-content:center;
+  }
+  body::before{
+    content:'';
+    position:absolute;
+    top:0; left:50%;
+    transform:translateX(-50%);
+    width:700px; height:500px;
+    background:radial-gradient(circle, var(--glow) 0%, transparent 70%);
+    pointer-events:none;
+  }
+
+  .app{
+    width:100%;
+    max-width:760px;
+    position:relative;
+    z-index:1;
+  }
+
+  .app-label{
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    color:var(--muted);
+    letter-spacing:0.05em;
+    margin-bottom:14px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .app-label::before{
+    content:'';
+    width:6px; height:6px;
+    border-radius:50%;
+    background:var(--accent-warm);
+  }
+
+  h1{ font-size:28px; font-weight:700; letter-spacing:-0.01em; margin-bottom:6px; }
+  .subtitle{ color:var(--muted); font-size:14px; margin-bottom:24px; }
+
+  .search-row{
+    display:flex;
+    gap:10px;
+    margin-bottom:16px;
+  }
+  #queryInput{
+    flex:1;
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:14px 16px;
+    color:var(--text);
+    font-family:'Space Grotesk', sans-serif;
+    font-size:14px;
+    outline:none;
+    transition:border-color 0.2s ease;
+  }
+  #queryInput::placeholder{ color:var(--muted-dim); }
+  #queryInput:focus{ border-color:var(--accent); }
+
+  #searchBtn{
+    font-family:'JetBrains Mono', monospace;
+    font-size:13px;
+    font-weight:600;
+    background:var(--text);
+    color:var(--bg);
+    border:none;
+    border-radius:12px;
+    padding:0 20px;
+    cursor:pointer;
+    transition:opacity 0.2s ease;
+    white-space:nowrap;
+  }
+  #searchBtn:hover{ opacity:0.85; }
+
+  .chip-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-bottom:26px;
+  }
+  .chip{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    background:var(--card);
+    border:1px solid var(--border);
+    color:var(--muted);
+    padding:7px 14px;
+    border-radius:100px;
+    cursor:pointer;
+    transition:all 0.2s ease;
+  }
+  .chip:hover{ border-color:var(--accent); color:var(--text); }
+
+  .state-msg{
+    font-family:'JetBrains Mono', monospace;
+    font-size:13px;
+    color:var(--muted);
+    text-align:center;
+    padding:60px 0;
+  }
+  .state-msg.error{ color:var(--danger); }
+  .hidden{ display:none; }
+
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(3, 1fr);
+    gap:16px;
+  }
+  .recipe-card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:16px;
+    overflow:hidden;
+    cursor:pointer;
+    transition:border-color 0.2s ease, transform 0.2s ease;
+  }
+  .recipe-card:hover{ border-color:rgba(255,255,255,0.18); transform:translateY(-3px); }
+  .recipe-card img{
+    width:100%;
+    aspect-ratio:1;
+    object-fit:cover;
+    display:block;
+    background:var(--bg);
+  }
+  .recipe-card .rc-body{ padding:12px 14px 16px; }
+  .recipe-card h4{
+    font-size:14px;
+    font-weight:600;
+    margin-bottom:6px;
+    line-height:1.3;
+  }
+  .recipe-card .rc-tag{
+    font-family:'JetBrains Mono', monospace;
+    font-size:10.5px;
+    color:var(--muted-dim);
+  }
+
+  /* Modal */
+  .modal-overlay{
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,0.7);
+    backdrop-filter:blur(4px);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:50;
+    padding:20px;
+  }
+  .modal-overlay.hidden{ display:none; }
+  .modal{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:20px;
+    max-width:560px;
+    width:100%;
+    max-height:85vh;
+    overflow-y:auto;
+    position:relative;
+  }
+  .modal img{
+    width:100%;
+    aspect-ratio:16/9;
+    object-fit:cover;
+    display:block;
+  }
+  .modal-body{ padding:24px; }
+  .modal-close{
+    position:absolute;
+    top:14px; right:14px;
+    background:rgba(10,10,13,0.8);
+    border:1px solid var(--border);
+    color:var(--text);
+    width:34px; height:34px;
+    border-radius:50%;
+    cursor:pointer;
+    font-size:16px;
+    z-index:2;
+  }
+  .modal h2{ font-size:20px; margin-bottom:6px; }
+  .modal .meta{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    color:var(--muted);
+    margin-bottom:18px;
+  }
+  .modal h3{
+    font-size:13px;
+    font-family:'JetBrains Mono', monospace;
+    color:var(--accent);
+    margin:18px 0 10px;
+    letter-spacing:0.03em;
+  }
+  .ingredient-list{ list-style:none; }
+  .ingredient-list li{
+    display:flex;
+    justify-content:space-between;
+    font-size:13.5px;
+    padding:8px 0;
+    border-bottom:1px solid var(--border);
+    color:var(--text);
+  }
+  .ingredient-list li span.amt{ color:var(--muted); font-family:'JetBrains Mono', monospace; font-size:12px; }
+  .modal .instructions{
+    font-size:13.5px;
+    line-height:1.7;
+    color:var(--muted);
+    white-space:pre-line;
+  }
+
+  @media (max-width:680px){
+    .grid{ grid-template-columns:repeat(2, 1fr); }
+  }
+  @media (max-width:420px){
+    .grid{ grid-template-columns:repeat(2, 1fr); gap:10px; }
+    .search-row{ flex-wrap:wrap; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="app-label">// recipes.js</div>
+  <h1>Recipe Finder</h1>
+  <p class="subtitle">Search any dish or ingredient and get the full recipe.</p>
+
+  <div class="search-row">
+    <input type="text" id="queryInput" placeholder="Search a dish, e.g. 'chicken curry'...">
+    <button id="searchBtn">Search</button>
+  </div>
+  <div class="chip-row">
+    <span class="chip" data-q="Pasta">Pasta</span>
+    <span class="chip" data-q="Chicken">Chicken</span>
+    <span class="chip" data-q="Cake">Cake</span>
+    <span class="chip" data-q="Curry">Curry</span>
+    <span class="chip" data-q="Salad">Salad</span>
+    <span class="chip" data-q="Soup">Soup</span>
+  </div>
+
+  <div id="statusMsg" class="state-msg">Search for a dish to get started.</div>
+  <div class="grid hidden" id="grid"></div>
+</div>
+
+<div class="modal-overlay hidden" id="modalOverlay">
+  <div class="modal">
+    <button class="modal-close" id="modalClose">✕</button>
+    <div id="modalContent"></div>
+  </div>
+</div>
+
+<script>
+  const queryInput = document.getElementById('queryInput');
+  const searchBtn = document.getElementById('searchBtn');
+  const statusMsg = document.getElementById('statusMsg');
+  const grid = document.getElementById('grid');
+  const modalOverlay = document.getElementById('modalOverlay');
+  const modalContent = document.getElementById('modalContent');
+  const modalClose = document.getElementById('modalClose');
+
+  function setStatus(msg, isError = false){
+    grid.classList.add('hidden');
+    statusMsg.classList.remove('hidden');
+    statusMsg.textContent = msg;
+    statusMsg.classList.toggle('error', isError);
+  }
+
+  async function searchMeals(query){
+    if(!query.trim()) return;
+    setStatus('Searching...');
+    try{
+      const res = await fetch(`https://www.themealdb.com/api/json/v1/1/search.php?s=${encodeURIComponent(query)}`);
+      if(!res.ok) throw new Error('Request failed');
+      const data = await res.json();
+      if(!data.meals){
+        setStatus(`No recipes found for "${query}". Try something else.`, true);
+        return;
+      }
+      renderGrid(data.meals);
+    } catch(err){
+      setStatus('Something went wrong. Check your connection and try again.', true);
+    }
+  }
+
+  function renderGrid(meals){
+    grid.innerHTML = '';
+    meals.forEach(meal => {
+      const card = document.createElement('div');
+      card.className = 'recipe-card';
+      card.innerHTML = `
+        <img src="${meal.strMealThumb}" alt="${meal.strMeal}" loading="lazy">
+        <div class="rc-body">
+          <h4>${meal.strMeal}</h4>
+          <div class="rc-tag">${meal.strArea || 'International'} ${meal.strCategory ? '· ' + meal.strCategory : ''}</div>
+        </div>
+      `;
+      card.addEventListener('click', () => openModal(meal));
+      grid.appendChild(card);
+    });
+    statusMsg.classList.add('hidden');
+    grid.classList.remove('hidden');
+  }
+
+  function openModal(meal){
+    const ingredients = [];
+    for(let i = 1; i <= 20; i++){
+      const ing = meal[`strIngredient${i}`];
+      const measure = meal[`strMeasure${i}`];
+      if(ing && ing.trim()){
+        ingredients.push(`<li><span>${ing}</span><span class="amt">${measure || ''}</span></li>`);
+      }
+    }
+
+    modalContent.innerHTML = `
+      <img src="${meal.strMealThumb}" alt="${meal.strMeal}">
+      <div class="modal-body">
+        <h2>${meal.strMeal}</h2>
+        <div class="meta">${meal.strArea || 'International'} · ${meal.strCategory || 'Dish'}</div>
+        <h3>// ingredients</h3>
+        <ul class="ingredient-list">${ingredients.join('')}</ul>
+        <h3>// instructions</h3>
+        <div class="instructions">${meal.strInstructions || 'No instructions available.'}</div>
+      </div>
+    `;
+    modalOverlay.classList.remove('hidden');
+  }
+
+  function closeModal(){
+    modalOverlay.classList.add('hidden');
+    modalContent.innerHTML = '';
+  }
+
+  searchBtn.addEventListener('click', () => searchMeals(queryInput.value));
+  queryInput.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter') searchMeals(queryInput.value);
+  });
+
+  document.querySelectorAll('.chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      queryInput.value = chip.dataset.q;
+      searchMeals(chip.dataset.q);
+    });
+  });
+
+  modalClose.addEventListener('click', closeModal);
+  modalOverlay.addEventListener('click', (e) => {
+    if(e.target === modalOverlay) closeModal();
+  });
+
+  // Load a default search on first visit
+  searchMeals('Pasta');
+</script>
+
+</body>
+</html>
